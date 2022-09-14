@@ -47,12 +47,12 @@ public final class Handler extends URLStreamHandler {
    * @throws SecurityException if the system property that needs to be set to register this handler
    *     can't be read or written.
    */
-  static void register() {
+  public static void register() {
     register(Handler.class);
   }
 
   /** Generic method that would allow registration of any properly placed {@code Handler} class. */
-  static void register(Class<? extends URLStreamHandler> handlerClass) {
+  public static void register(Class<? extends URLStreamHandler> handlerClass) {
     checkArgument("Handler".equals(handlerClass.getSimpleName()));
 
     String pkg = handlerClass.getPackage().getName();
