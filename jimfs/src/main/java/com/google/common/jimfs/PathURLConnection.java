@@ -36,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
+import java.nio.file.spi.FileSystemProvider;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -72,7 +73,7 @@ final class PathURLConnection extends URLConnection {
       return;
     }
 
-    Path path = Paths.get(toUri(url));
+    Path path = pathOf(toUri(url));
 
     long length;
     if (Files.isDirectory(path)) {
@@ -143,5 +144,30 @@ final class PathURLConnection extends URLConnection {
 
     // no header should have more than one value
     return Iterables.getFirst(headers.get(Ascii.toLowerCase(name)), null);
+  }
+
+  public Path pathOf(URI uri) {
+    String scheme =  uri.getScheme();
+    if (scheme.equalsIgnoreCase("jimfs")) {
+      ServiceLoader<FileSystemProvider> sl = ServiceLoader
+              .load(FileSystemProvider.class, SystemJimfsFileSystemProvider.class.getClassLoader());
+
+      Iterator<FileSystemProvider> slIterator = sl.iterator();
+      while (slIterator.hasNext()) {
+        try {
+          FileSystemProvider provider = slIterator.next();
+          String providerScheme = provider.getScheme();
+
+          if (providerScheme.equalsIgnoreCase(scheme)) {
+            return provider.getPath(uri);
+          }
+        } catch (Exception e) {
+          //ignored
+        }
+      }
+    }
+
+    // Fall back to old way of Paths.get and the system classloader for non-jimfs URLs
+    return Paths.get(uri);
   }
 }
